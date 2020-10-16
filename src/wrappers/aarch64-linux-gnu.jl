@@ -2,52 +2,15 @@
 export libatk
 
 using Glib_jll
-## Global variables
-PATH = ""
-LIBPATH = ""
-LIBPATH_env = "LD_LIBRARY_PATH"
-LIBPATH_default = ""
-
-# Relative path to `libatk`
-const libatk_splitpath = ["lib", "libatk-1.0.so"]
-
-# This will be filled out by __init__() for all products, as it must be done at runtime
-libatk_path = ""
-
-# libatk-specific global declaration
-# This will be filled out by __init__()
-libatk_handle = C_NULL
-
-# This must be `const` so that we can use it with `ccall()`
-const libatk = "libatk-1.0.so.0"
-
-
-"""
-Open all libraries
-"""
+JLLWrappers.@generate_wrapper_header("ATK")
+JLLWrappers.@declare_library_product(libatk, "libatk-1.0.so.0")
 function __init__()
-    global artifact_dir = abspath(artifact"ATK")
+    JLLWrappers.@generate_init_header(Glib_jll)
+    JLLWrappers.@init_library_product(
+        libatk,
+        "lib/libatk-1.0.so",
+        RTLD_LAZY | RTLD_DEEPBIND,
+    )
 
-    # Initialize PATH and LIBPATH environment variable listings
-    global PATH_list, LIBPATH_list
-    # From the list of our dependencies, generate a tuple of all the PATH and LIBPATH lists,
-    # then append them to our own.
-    foreach(p -> append!(PATH_list, p), (Glib_jll.PATH_list,))
-    foreach(p -> append!(LIBPATH_list, p), (Glib_jll.LIBPATH_list,))
-
-    global libatk_path = normpath(joinpath(artifact_dir, libatk_splitpath...))
-
-    # Manually `dlopen()` this right now so that future invocations
-    # of `ccall` with its `SONAME` will find this path immediately.
-    global libatk_handle = dlopen(libatk_path)
-    push!(LIBPATH_list, dirname(libatk_path))
-
-    # Filter out duplicate and empty entries in our PATH and LIBPATH entries
-    filter!(!isempty, unique!(PATH_list))
-    filter!(!isempty, unique!(LIBPATH_list))
-    global PATH = join(PATH_list, ':')
-    global LIBPATH = join(vcat(LIBPATH_list, [joinpath(Sys.BINDIR, Base.LIBDIR, "julia"), joinpath(Sys.BINDIR, Base.LIBDIR)]), ':')
-
-    
+    JLLWrappers.@generate_init_footer()
 end  # __init__()
-
